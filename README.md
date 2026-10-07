@@ -3,6 +3,7 @@
 A Chrome extension that turns video lectures into notes you can search, mark up and take
 elsewhere — entirely on your own machine.
 
+[![CI](https://github.com/pras-ops/udemy-transcript-extractor/actions/workflows/ci.yml/badge.svg)](https://github.com/pras-ops/udemy-transcript-extractor/actions/workflows/ci.yml)
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-blue?logo=google-chrome)](https://chrome.google.com/webstore)
 [![Version](https://img.shields.io/badge/version-4.3.0-green.svg)](https://github.com/pras-ops/udemy-transcript-extractor)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
