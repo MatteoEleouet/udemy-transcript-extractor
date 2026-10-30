@@ -16,7 +16,9 @@ vi.mock('./library-db', () => ({ importCourseLectures }));
 const { loadCurriculum, runCourseDownload } = await import('./course-download');
 const { DEFAULT_DOWNLOAD_OPTIONS } = await import('./udemy-course');
 
-const VTT = 'WEBVTT\n\n00:00:01.000 --> 00:00:03.000\nHello there\n\n00:00:04.000 --> 00:00:06.000\nGeneral Kenobi\n';
+const VTT =
+  'WEBVTT\n\n00:00:01.000 --> 00:00:03.000\nHello there, today we we look at\n\n' +
+  '00:00:04.000 --> 00:00:06.000\nprime numbers.\n\n00:00:07.000 --> 00:00:08.000\nAnd.\n';
 
 const PAGE_ONE = {
   next: 'https://www.udemy.com/api-2.0/courses/42/subscriber-curriculum-items/?page=2',
@@ -153,10 +155,47 @@ describe('runCourseDownload', () => {
         expect.objectContaining({
           id: 'https://www.udemy.com/course/python/learn/lecture/100',
           order: 1,
-          transcript: '[00:01] Hello there\n\n[00:04] General Kenobi',
+          transcript: '[00:01] Hello there, today we we look at\n\n[00:04] prime numbers.\n\n[00:07] And.',
         }),
       ]),
     );
+  });
+
+  it('writes clean text per lecture and the whole course in one file', async () => {
+    // Keep what each blob held, so the written text can be read back.
+    const texts = new Map<string, Promise<string>>();
+    vi.stubGlobal(
+      'URL',
+      Object.assign(URL, {
+        createObjectURL: (blob: Blob) => {
+          const id = `blob:${texts.size}`;
+          texts.set(id, blob.text());
+          return id;
+        },
+        revokeObjectURL: () => undefined,
+      }),
+    );
+
+    const curriculum = await settle(loadCurriculum(7));
+    await settle(
+      runCourseDownload(7, curriculum, { ...DEFAULT_DOWNLOAD_OPTIONS, subtitleFormats: ['txt'] }, { mode: 'folder' }),
+    );
+
+    const textOf = (suffix: string) => texts.get(downloads.find((d) => d.filename.endsWith(suffix))!.url)!;
+
+    const lecture = await textOf('001 - Welcome.en_US.txt');
+    expect(lecture).toContain('# 1. Welcome');
+    expect(lecture).toContain('Course: Python');
+    expect(lecture).toContain('Attached resources: slides.pdf, gone.zip');
+    expect(lecture).toContain('[00:01] Hello there, today we look at prime numbers.');
+    expect(lecture).not.toContain('And.');
+
+    const course = await textOf('Full course transcript.md');
+    expect(course).toContain('## Contents');
+    expect(course.indexOf('### 1. Welcome')).toBeLessThan(course.indexOf('### 2. Next'));
+
+    // The course file is linked from the index.
+    expect(await textOf('README.md')).toContain('[Full course transcript.md](<Full course transcript.md>)');
   });
 
   it('fetches each caption track once, whatever the number of formats', async () => {

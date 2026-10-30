@@ -29,8 +29,11 @@ On Udemy there is a faster way: **Download whole course** in the popup.
 1. Open any lecture of a course you are enrolled in, click the extension icon, then **Download
    whole course**. The dashboard opens on that course; keep the Udemy tab open, it is what carries
    your session.
-2. Pick the subtitle languages and formats (SRT, WebVTT, text transcript), and whether to include
-   attached files, article lectures and external links.
+2. Pick the subtitle languages and formats, and whether to include attached files, article lectures
+   and external links. **To use the course with an AI assistant**, keep one language, tick
+   **Clean text** only and **The whole course in one file**: you get `Full course transcript.md`,
+   every lecture in order as cleaned paragraphs, which is the file to upload with the PDFs. SRT and
+   WebVTT are only useful for showing subtitles on a video.
 3. Optionally tick **Also add every lecture's transcript to the library** to make the whole course
    searchable without extracting each lecture.
 4. Choose **Folders in Downloads** (recommended for large courses) or **One ZIP archive**, then

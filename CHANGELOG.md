@@ -21,6 +21,13 @@ All notable changes to this project are documented here.
   download reads that API through the open Udemy tab, with the student's own
   session, so nothing is navigated and no token is ever held by the extension.
 
+- **Text for AI assistants.** The text format is no longer one caption line
+  per timestamp: it is the shared cleanup pipeline, then stutters ("how to how
+  to", "of of") and false starts ("And.") removed, sentences rejoined across
+  cue boundaries, one timestamp per paragraph, and a header with the course,
+  section, duration and attached resources. `Full course transcript.md` puts
+  the whole course in one file, with a contents list, articles included.
+
 - **Whole-course import into the library**, from the same captions: one click
   and every lecture is readable and searchable, in course order. Lectures
   already extracted keep their transcript, highlights and notes.

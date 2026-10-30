@@ -385,6 +385,11 @@ export interface DownloadOptions {
   links: boolean;
   /** Article lectures, saved as HTML. */
   articles: boolean;
+  /**
+   * The whole course as one Markdown file, cleaned for reading by a language
+   * model, in the first chosen language.
+   */
+  courseFile: boolean;
 }
 
 export const DEFAULT_DOWNLOAD_OPTIONS: DownloadOptions = {
@@ -393,7 +398,11 @@ export const DEFAULT_DOWNLOAD_OPTIONS: DownloadOptions = {
   resources: true,
   links: true,
   articles: true,
+  courseFile: true,
 };
+
+/** Name of the one-file course, at the top of the course folder. */
+export const COURSE_FILE = 'Full course transcript.md';
 
 interface PlannedBase {
   /** Relative to the course folder, forward slashes. */
@@ -405,7 +414,8 @@ export type PlannedFile =
   | (PlannedBase & { kind: 'caption'; url: string; locale: string; format: SubtitleFormat })
   | (PlannedBase & { kind: 'resource'; assetId: number; main: boolean; title: string })
   | (PlannedBase & { kind: 'article'; title: string })
-  | (PlannedBase & { kind: 'links'; text: string });
+  | (PlannedBase & { kind: 'links'; text: string })
+  | (PlannedBase & { kind: 'course-text'; locale: string });
 
 export interface PlannedLecture {
   lecture: CourseLecture;
@@ -425,6 +435,14 @@ export interface DownloadPlan {
 
 function wantsLocale(options: DownloadOptions, locale: string): boolean {
   return options.locales === 'all' || options.locales.includes(locale);
+}
+
+/**
+ * The one language a single-language output is written in: the most widely
+ * available of the chosen ones.
+ */
+export function primaryLocale(curriculum: CourseCurriculum, options: DownloadOptions): string | null {
+  return captionLocales(curriculum).find((entry) => wantsLocale(options, entry.locale))?.locale ?? null;
 }
 
 /** Markdown link target that survives spaces and brackets in the path. */
@@ -544,7 +562,11 @@ export function planCourseDownload(
     }
   }
 
-  return { root, lectures, files: lectures.flatMap((entry) => entry.files) };
+  const files = lectures.flatMap((entry) => entry.files);
+  const locale = options.courseFile ? primaryLocale(curriculum, options) : null;
+  if (locale) files.push({ kind: 'course-text', path: COURSE_FILE, lectureId: 0, locale });
+
+  return { root, lectures, files };
 }
 
 /** What happened to one planned file. */
@@ -560,6 +582,8 @@ function describeFile(file: PlannedFile): string {
       return 'Links';
     case 'resource':
       return file.main ? 'Lecture document' : `Resource · ${file.title}`;
+    case 'course-text':
+      return `Whole course · ${file.locale}`;
   }
 }
 
@@ -589,6 +613,14 @@ export function buildCourseIndex(
     `Downloaded: ${generatedAt.toISOString().slice(0, 10)}`,
     '',
   ];
+
+  const courseFile = plan.files.find((file) => file.kind === 'course-text');
+  if (courseFile && outcomes.get(courseFile.path)?.status === 'saved') {
+    lines.push(
+      `Whole course in one file, for reading or for an AI assistant: [${courseFile.path}](${linkTarget(courseFile.path)})`,
+      '',
+    );
+  }
 
   const bySection = new Map<number, PlannedLecture[]>();
   for (const entry of plan.lectures) {
@@ -649,6 +681,7 @@ export function buildCourseManifest(
       courseId: curriculum.courseId,
       title: curriculum.title,
       url: `${curriculum.origin}/course/${curriculum.slug}/`,
+      fullTranscript: plan.files.find((file) => file.kind === 'course-text')?.path ?? null,
       sections: curriculum.sections.map((section) => ({
         index: section.index,
         title: section.title,
