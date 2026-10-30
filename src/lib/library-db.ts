@@ -282,6 +282,83 @@ export async function saveLecture(
   ]);
 }
 
+/** One lecture of a course read in full from its captions. */
+export interface ImportedLecture {
+  id: string;
+  title: string;
+  url: string;
+  /** Position in the course — known here, unlike for extracted lectures. */
+  order: number;
+  durationSeconds?: number;
+  transcript: string;
+}
+
+/**
+ * Bring a whole course into the library at once.
+ *
+ * What is already there wins: a lecture the reader extracted, marked done or
+ * annotated keeps its transcript and its state. Only its title and position
+ * are refreshed, because those now come from the course itself rather than
+ * from the order things happened to be extracted in.
+ */
+export async function importCourseLectures(
+  courseId: string,
+  meta: { courseTitle?: string },
+  lectures: ImportedLecture[],
+): Promise<{ added: number; kept: number }> {
+  if (lectures.length === 0) return { added: 0, kept: 0 };
+
+  const [existingCourse, existingLectures, existingTranscripts] = await Promise.all([
+    getCourse(courseId),
+    listLectures(courseId),
+    listTranscripts(courseId),
+  ]);
+  const previous = new Map(existingLectures.map((lecture) => [lecture.id, lecture]));
+  const hasText = new Set(existingTranscripts.map((transcript) => transcript.lectureId));
+  const now = Date.now();
+
+  const { course } = toLibraryRecords(courseId, [{ ...lectures[0], collectedAt: now }], {
+    title: meta.courseTitle ?? existingCourse?.title,
+    instructor: existingCourse?.instructor,
+    now,
+  });
+
+  const lectureRecords: LectureRecord[] = [];
+  const transcriptRecords: TranscriptRecord[] = [];
+  let added = 0;
+
+  for (const lecture of lectures) {
+    const before = previous.get(lecture.id);
+    const keepText = hasText.has(lecture.id);
+    if (!keepText && lecture.transcript) {
+      transcriptRecords.push({ lectureId: lecture.id, courseId, text: lecture.transcript, savedAt: now });
+      added += 1;
+    }
+    lectureRecords.push({
+      ...before,
+      id: lecture.id,
+      courseId,
+      title: lecture.title,
+      url: lecture.url,
+      order: lecture.order,
+      durationSeconds: lecture.durationSeconds ?? before?.durationSeconds,
+      collectedAt: before?.collectedAt ?? now,
+      wordCount: keepText ? (before?.wordCount ?? 0) : countWords(lecture.transcript),
+    });
+  }
+
+  await writeAll([
+    {
+      store: STORES.courses,
+      records: [{ ...course, createdAt: existingCourse?.createdAt ?? now, updatedAt: now }],
+    },
+    { store: STORES.lectures, records: lectureRecords },
+    { store: STORES.transcripts, records: transcriptRecords },
+  ]);
+
+  return { added, kept: lectures.length - added };
+}
+
 /**
  * Everything attached to a lecture, counted without loading any of it.
  *

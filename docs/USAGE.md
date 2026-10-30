@@ -22,6 +22,27 @@ the sidebar each time.
 Lectures accumulate per course. Moving to a different course starts a separate collection; coming
 back returns to the first one.
 
+### Downloading a whole Udemy course at once
+
+On Udemy there is a faster way: **Download whole course** in the popup.
+
+1. Open any lecture of a course you are enrolled in, click the extension icon, then **Download
+   whole course**. The dashboard opens on that course; keep the Udemy tab open, it is what carries
+   your session.
+2. Pick the subtitle languages and formats (SRT, WebVTT, text transcript), and whether to include
+   attached files, article lectures and external links.
+3. Optionally tick **Also add every lecture's transcript to the library** to make the whole course
+   searchable without extracting each lecture.
+4. Choose **Folders in Downloads** (recommended for large courses) or **One ZIP archive**, then
+   **Download course**. Chrome asks once for the downloads permission.
+
+Everything lands in `Downloads/Udemy/<Course>/`, one folder per section and per lecture, numbered as
+in the course player. `README.md` at the top lists every lecture with links to its files and marks
+anything that could not be downloaded, with the reason.
+
+If Chrome is set to *Ask where to save each file*, it will ask for every file in folder mode: turn
+that setting off for the duration, or use the ZIP.
+
 ---
 
 ## 2. While you are watching

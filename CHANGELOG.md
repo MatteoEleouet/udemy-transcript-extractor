@@ -2,6 +2,34 @@
 
 All notable changes to this project are documented here.
 
+## [Unreleased]
+
+### Added
+
+- **Download a whole Udemy course.** Every subtitle track — all languages or a
+  chosen few, as SRT, WebVTT or a plain transcript — and every attached
+  resource: PDFs, slides, source code, document lectures, article lectures as
+  HTML, external links as `links.md`. Filed as `Udemy/<Course>/<NN - Section>/
+  <NNN - Lecture>/`, numbered as in the course player, with subtitles named
+  after their lecture so a player pairs them with a video of the same name.
+  A `README.md` and a `course.json` at the top map every lecture to its files,
+  and say which ones failed and why.
+
+  Collecting a course used to mean walking it one lecture at a time, because
+  the extractor reads what the player renders. Udemy's web app lists the whole
+  curriculum, its captions and its resources through its own API; the
+  download reads that API through the open Udemy tab, with the student's own
+  session, so nothing is navigated and no token is ever held by the extension.
+
+- **Whole-course import into the library**, from the same captions: one click
+  and every lecture is readable and searchable, in course order. Lectures
+  already extracted keep their transcript, highlights and notes.
+
+### Changed
+
+- `downloads` and `https://*.udemycdn.com/*` are **optional** permissions,
+  requested on the first course download rather than at install.
+
 ## [4.3.0] — 2026-09-28
 
 The release that closed the loop between watching a lecture and keeping notes
