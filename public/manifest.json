@@ -10,10 +10,16 @@
     "scripting",
     "unlimitedStorage"
   ],
+  "optional_permissions": [
+    "downloads"
+  ],
   "host_permissions": [
     "https://*.udemy.com/*",
     "https://*.coursera.org/*",
     "https://*.youtube.com/*"
+  ],
+  "optional_host_permissions": [
+    "https://*.udemycdn.com/*"
   ],
   "icons": {
     "16": "icons/icon16.png",

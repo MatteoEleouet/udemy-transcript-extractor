@@ -7,6 +7,7 @@ import {
   Sun,
   Moon,
   FileText,
+  FolderDown,
 } from 'lucide-react';
 import {
   importPendingNotes,
@@ -19,6 +20,7 @@ import { LectureView } from './LectureView';
 import { SearchView } from './SearchView';
 import { NotesView } from './NotesView';
 import { HighlightsView } from './HighlightsView';
+import { CourseDownloadView } from './CourseDownloadView';
 
 /**
  * The library, as a full extension page.
@@ -38,7 +40,20 @@ export type View =
   | { name: 'lecture'; lectureId: string }
   | { name: 'search' }
   | { name: 'highlights' }
-  | { name: 'notes' };
+  | { name: 'notes' }
+  | { name: 'download'; tabId?: number };
+
+/**
+ * The view to open on, from the URL hash.
+ *
+ * The popup opens `dashboard.html#download=<tabId>` to hand over a Udemy
+ * course; everything else starts at the library.
+ */
+function initialView(): View {
+  const match = /^#download(?:=(\d+))?$/.exec(window.location.hash);
+  if (!match) return { name: 'library' };
+  return { name: 'download', tabId: match[1] ? Number(match[1]) : undefined };
+}
 
 interface Totals {
   courses: number;
@@ -47,7 +62,7 @@ interface Totals {
 }
 
 export const Dashboard: React.FC = () => {
-  const [view, setView] = useState<View>({ name: 'library' });
+  const [view, setView] = useState<View>(initialView);
   const [theme, setTheme] = useState<Theme>(() => resolveTheme());
   const [totals, setTotals] = useState<Totals | null>(null);
   const [ready, setReady] = useState(false);
@@ -113,6 +128,11 @@ export const Dashboard: React.FC = () => {
       icon: <Highlighter className="w-4 h-4" />,
     },
     { view: { name: 'notes' }, label: 'Notes', icon: <StickyNote className="w-4 h-4" /> },
+    {
+      view: { name: 'download' },
+      label: 'Download course',
+      icon: <FolderDown className="w-4 h-4" />,
+    },
   ];
 
   const isActive = (candidate: View) =>
@@ -209,6 +229,14 @@ export const Dashboard: React.FC = () => {
             <HighlightsView
               onOpenLecture={(lectureId) => setView({ name: 'lecture', lectureId })}
               onGoToLibrary={() => setView({ name: 'library' })}
+            />
+          ) : view.name === 'download' ? (
+            <CourseDownloadView
+              initialTabId={view.tabId}
+              onOpenLibrary={() => {
+                void refreshTotals();
+                setView({ name: 'library' });
+              }}
             />
           ) : (
             <NotesView

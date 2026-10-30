@@ -3,13 +3,17 @@
 A Chrome extension that turns video lectures into notes you can search, mark up and take
 elsewhere — entirely on your own machine.
 
-[![CI](https://github.com/pras-ops/udemy-transcript-extractor/actions/workflows/ci.yml/badge.svg)](https://github.com/pras-ops/udemy-transcript-extractor/actions/workflows/ci.yml)
+[![CI](https://github.com/MatteoEleouet/udemy-transcript-extractor/actions/workflows/ci.yml/badge.svg)](https://github.com/MatteoEleouet/udemy-transcript-extractor/actions/workflows/ci.yml)
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-blue?logo=google-chrome)](https://chrome.google.com/webstore)
-[![Version](https://img.shields.io/badge/version-4.3.0-green.svg)](https://github.com/pras-ops/udemy-transcript-extractor)
+[![Version](https://img.shields.io/badge/version-4.3.0-green.svg)](https://github.com/MatteoEleouet/udemy-transcript-extractor)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-No account, no server, no telemetry. The extension makes **no network requests at all** while it
-runs.
+Fork of [pras-ops/udemy-transcript-extractor](https://github.com/pras-ops/udemy-transcript-extractor),
+adding whole-course downloads of Udemy subtitles and resources.
+
+No account, no server, no telemetry. The extension makes **no network requests of its own** while it
+runs — the one exception being a Udemy course download you start yourself, which talks to Udemy
+only, with your own session.
 
 ---
 
@@ -92,6 +96,37 @@ All of this is derived from the transcript by selection and statistics, so nothi
 | **SubRip** (`.srt`) / **WebVTT** (`.vtt`) | Video editors, players, re-upload |
 | **CSV** (`.csv`) | Excel, Google Sheets |
 | **Anki** (`.csv`) | Cloze cards built from stated definitions |
+
+### Download a whole Udemy course
+
+**Download whole course** (popup, on any Udemy lecture) opens a page in the dashboard that saves
+**every subtitle track and every attached resource** of the course — without walking it lecture by
+lecture:
+
+- **All subtitle languages**, or the ones you pick, as SRT, WebVTT and/or a plain transcript.
+- **Resources**: attached PDFs, slides, source code and documents, lectures that are themselves a
+  document, article lectures as HTML, and external links as a `links.md`.
+- **Filed by curriculum**, numbered as in the course player, so each file sits with its lecture:
+
+```
+Downloads/Udemy/<Course>/
+  README.md                         every lecture, with links to its files
+  course.json                       the same mapping, for scripts
+  01 - Getting started/
+    001 - Welcome/
+      001 - Welcome.en_US.srt       named after the lecture, so a player pairs it
+      001 - Welcome.fr_FR.auto.srt  auto-generated tracks are marked
+      slides.pdf
+      links.md
+```
+
+- Optionally **imports every transcript into the library** in one go, so the whole course is
+  searchable at once. Lectures you already extracted keep their transcript, highlights and notes.
+- Saved as folders (streamed to disk, fine for big courses) or as one ZIP.
+
+It reads Udemy's course API through your open Udemy tab, with your own session, for courses you are
+enrolled in. Videos are never downloaded. The `downloads` permission is optional and only asked for
+the first time you use it.
 
 ---
 
@@ -228,7 +263,7 @@ Coming soon.
 ### Build from source
 
 ```bash
-git clone https://github.com/pras-ops/udemy-transcript-extractor.git
+git clone https://github.com/MatteoEleouet/udemy-transcript-extractor.git
 cd udemy-transcript-extractor
 npm install
 
@@ -324,7 +359,8 @@ Worth knowing before you rely on it:
 
 Everything runs on your machine, and the build enforces it:
 
-- No network calls at runtime — the search model ships inside the package
+- No network calls of its own at runtime — the search model ships inside the package. The only
+  requests are the Udemy course download you start by hand, to Udemy alone
 - No telemetry, analytics, crash reporting or remote configuration
 - No account, ever
 - Host permissions limited to the three supported platforms; **no all-URLs permission**, and

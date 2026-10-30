@@ -16,8 +16,16 @@ what that means.
 personally identifiable information.
 
 There is no account, no analytics, no telemetry, no crash reporting and no
-remote configuration. The extension makes **no network requests of any kind**
+remote configuration. The extension makes **no network requests of its own**
 while it runs.
+
+The one exception is a feature you start by hand: **Download whole course** on
+Udemy. It reads that course's curriculum from Udemy's own API, through the
+Udemy tab you have open and with your existing Udemy session, then downloads
+the course's subtitle files and attached resources from Udemy's CDN to your
+Downloads folder. Those requests go to Udemy only, carry nothing beyond what
+your browser already sends Udemy, and never reach any other server. The
+extension never reads or stores your Udemy password or token.
 
 Specifically, we never collect:
 
@@ -82,6 +90,8 @@ rest of the extension is unaffected.
 | `unlimitedStorage` | Keep captured screenshots; the default 10 MB cap holds only a few |
 | `clipboardWrite` | Copy a transcript when you ask for it |
 | Host access to `udemy.com`, `coursera.org`, `youtube.com` | Read transcripts on those sites |
+| `downloads` *(optional)* | Save a whole Udemy course's subtitles and resources into folders. Asked for only when you first start a course download |
+| Host access to `udemycdn.com` *(optional)* | Read the subtitle files of that course, to convert them to SRT/text. Asked for at the same moment |
 
 The extension does **not** request access to all websites, and does not run on
 sites other than those listed above.

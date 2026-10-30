@@ -26,6 +26,7 @@ import {
   Highlighter,
   StickyNote,
   X,
+  FolderDown,
 } from 'lucide-react';
 import { StorageService } from '../../lib/storage-service';
 import type { ExportFormat } from '../../lib/extension-service';
@@ -929,6 +930,19 @@ export const TranscriptExtractorPopup = () => {
     else window.open(url, '_blank');
   };
 
+  /**
+   * Hand the course in this tab to the dashboard's download page.
+   *
+   * The tab id travels in the hash so the dashboard reads the API through
+   * this tab — the one carrying the Udemy session — and not another course.
+   */
+  const openCourseDownload = async () => {
+    if (typeof chrome === 'undefined' || !chrome.runtime?.getURL || !chrome.tabs) return;
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const hash = tab?.id !== undefined ? `#download=${tab.id}` : '#download';
+    void chrome.tabs.create({ url: chrome.runtime.getURL(`dashboard.html${hash}`) });
+  };
+
   const dropLecture = async (id: string) => {
     setCollection(await removeCourseLecture(id, collection, pageUrl ?? undefined));
   };
@@ -1440,6 +1454,26 @@ export const TranscriptExtractorPopup = () => {
           </span>
           <ChevronRight className="w-4 h-4 shrink-0 text-slate-400" />
         </button>
+
+        {/* The whole course at once — subtitles and resources — rather than
+            one lecture at a time. Udemy only: it reads Udemy's course API. */}
+        {availability?.platform === 'udemy' && (
+          <button
+            onClick={() => void openCourseDownload()}
+            className="flex w-full items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-800 px-3 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
+          >
+            <FolderDown className="w-4 h-4 shrink-0 text-slate-500 dark:text-slate-400" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13px] font-semibold text-slate-700 dark:text-slate-200">
+                Download whole course
+              </span>
+              <span className="block text-[11px] text-slate-500 dark:text-slate-400">
+                All subtitles and resources (PDFs, files), filed by lecture
+              </span>
+            </span>
+            <ChevronRight className="w-4 h-4 shrink-0 text-slate-400" />
+          </button>
+        )}
 
         {hasAnything && (
           <>

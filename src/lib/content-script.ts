@@ -36,7 +36,7 @@ declare global {
 
 // Message types for communication with popup
 export interface ContentScriptMessage {
-  type: 'EXTRACT_COURSE_STRUCTURE' | 'EXTRACT_TRANSCRIPT' | 'GET_VIDEO_INFO' | 'CHECK_AVAILABILITY' | 'START_BATCH_COLLECTION' | 'NAVIGATE_TO_NEXT_LECTURE' | 'COLLECT_CURRENT_TRANSCRIPT' | 'EXPORT_BATCH_TRANSCRIPTS' | 'TEST_COURSE_STRUCTURE' | 'PREPARE_CAPTURE' | 'RESUME_PLAYBACK' | 'SEEK_TO' | 'SHOW_TOAST';
+  type: 'EXTRACT_COURSE_STRUCTURE' | 'EXTRACT_TRANSCRIPT' | 'GET_VIDEO_INFO' | 'CHECK_AVAILABILITY' | 'START_BATCH_COLLECTION' | 'NAVIGATE_TO_NEXT_LECTURE' | 'COLLECT_CURRENT_TRANSCRIPT' | 'EXPORT_BATCH_TRANSCRIPTS' | 'TEST_COURSE_STRUCTURE' | 'PREPARE_CAPTURE' | 'RESUME_PLAYBACK' | 'SEEK_TO' | 'SHOW_TOAST' | 'UDEMY_COURSE_CONTEXT' | 'UDEMY_API_GET';
   data?: any;
 }
 
@@ -190,6 +190,18 @@ class ContentScript {
           break;
         }
 
+        // The course download. The dashboard plans it, but only this page
+        // holds the user's Udemy session, so API reads are made from here.
+        case 'UDEMY_COURSE_CONTEXT': {
+          sendResponse({ success: true, data: this.udemyCourseContext() });
+          break;
+        }
+
+        case 'UDEMY_API_GET': {
+          sendResponse({ success: true, data: await this.udemyApiGet(message.data?.path) });
+          break;
+        }
+
         default:
           sendResponse({ success: false, error: 'Unknown message type' });
       }
@@ -197,6 +209,79 @@ class ContentScript {
       console.error('Content script error:', error);
       sendResponse({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
     }
+  }
+
+  /**
+   * Which course this page is, as the course API names it.
+   *
+   * The numeric id is what the API wants; the page carries it in the
+   * course-taking app's boot arguments. The slug is the fallback the dashboard
+   * resolves through the API when the markup has moved.
+   */
+  private udemyCourseContext() {
+    if (!location.hostname.endsWith('udemy.com')) {
+      throw new Error('Course download works on Udemy course pages only.');
+    }
+
+    const slug = location.pathname.match(/^\/course\/([^/]+)/)?.[1] ?? null;
+    let courseId: number | null = null;
+
+    const app = document.querySelector<HTMLElement>('[data-module-id="course-taking"]');
+    try {
+      const args = JSON.parse(app?.dataset.moduleArgs ?? '{}') as { courseId?: unknown };
+      courseId = Number(args.courseId) || null;
+    } catch {
+      // Malformed boot arguments: fall through to the other sources.
+    }
+    if (!courseId) courseId = Number(document.body?.dataset.clpCourseId) || null;
+
+    const title =
+      document.querySelector('h1[data-purpose="course-title"]')?.textContent?.trim() ||
+      document.querySelector('[data-purpose="course-header-title"]')?.textContent?.trim() ||
+      null;
+
+    return { origin: location.origin, slug, courseId, title };
+  }
+
+  /**
+   * Read one Udemy API path with the user's own session.
+   *
+   * Deliberately narrow: GET only, same origin only, `/api-2.0/` only. The
+   * page's cookies make this request as the signed-in student, so it must not
+   * be a general-purpose fetch for whatever asks.
+   */
+  private async udemyApiGet(path: unknown): Promise<{ status: number; json: unknown }> {
+    if (!location.hostname.endsWith('udemy.com')) {
+      throw new Error('Udemy API requests are only made from a Udemy page.');
+    }
+    if (typeof path !== 'string' || !path.startsWith('/api-2.0/')) {
+      throw new Error('Refusing a request outside the Udemy course API.');
+    }
+
+    const url = new URL(path, location.origin);
+    if (url.origin !== location.origin) throw new Error('Refusing a cross-origin request.');
+
+    const headers: Record<string, string> = {
+      Accept: 'application/json, text/plain, */*',
+      'X-Requested-With': 'XMLHttpRequest',
+    };
+    // The web app authenticates its own API calls with this cookie as a bearer
+    // token; cookies alone are not always accepted.
+    const token = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/)?.[1];
+    if (token) {
+      headers.Authorization = `Bearer ${decodeURIComponent(token)}`;
+      headers['X-Udemy-Authorization'] = `Bearer ${decodeURIComponent(token)}`;
+    }
+
+    const response = await fetch(url.toString(), { credentials: 'include', headers });
+    const text = await response.text();
+    let json: unknown = null;
+    try {
+      json = JSON.parse(text);
+    } catch {
+      // A non-JSON body (an HTML error page) is reported by status alone.
+    }
+    return { status: response.status, json };
   }
 
   private async extractCourseStructure() {

@@ -15,7 +15,7 @@ Coming soon.
 ## Option 3: Build from source
 
 ```bash
-git clone https://github.com/pras-ops/udemy-transcript-extractor.git
+git clone https://github.com/MatteoEleouet/udemy-transcript-extractor.git
 cd udemy-transcript-extractor
 npm install
 

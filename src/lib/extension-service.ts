@@ -420,7 +420,7 @@ export class ExtensionService {
    * looks perfectly normal. Without this, the first click on a timestamp after
    * every extension update would fail with "Receiving end does not exist".
    */
-  private static async sendToTab(tabId: number, message: unknown): Promise<TabReply> {
+  static async sendToTab<T = TabReply>(tabId: number, message: unknown): Promise<T> {
     try {
       return await chrome.tabs.sendMessage(tabId, message);
     } catch (error) {
