@@ -83,7 +83,8 @@ mentioning in the submission notes, since it is a large and conspicuous change.
 - **Minor versions**: New features or improvements
 - **Patch versions**: Bug fixes and small improvements
 
-### **Current Version**: v4.3.0
+### **Current Version**: v4.4.0
+- Whole-course Udemy download: every subtitle track and resource, filed by lecture, plus one cleaned transcript of the whole course for AI assistants
 - The dashboard: library, reader, cross-course search, highlights and notes
 - Study-notes export, per lecture and per course
 - Click any timestamp to send the lecture's player back to that moment
