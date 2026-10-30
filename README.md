@@ -5,7 +5,7 @@ elsewhere — entirely on your own machine.
 
 [![CI](https://github.com/MatteoEleouet/udemy-transcript-extractor/actions/workflows/ci.yml/badge.svg)](https://github.com/MatteoEleouet/udemy-transcript-extractor/actions/workflows/ci.yml)
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-blue?logo=google-chrome)](https://chrome.google.com/webstore)
-[![Version](https://img.shields.io/badge/version-4.3.0-green.svg)](https://github.com/MatteoEleouet/udemy-transcript-extractor)
+[![Version](https://img.shields.io/badge/version-4.4.0-green.svg)](https://github.com/MatteoEleouet/udemy-transcript-extractor)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Fork of [pras-ops/udemy-transcript-extractor](https://github.com/pras-ops/udemy-transcript-extractor),
@@ -395,7 +395,7 @@ answer is "it will tell you". Node 18+ to build.
 
 ## 📊 Status
 
-**v4.3.0** — 543 tests across 24 files; typecheck, lint and the eight Chrome Web Store compliance
+**v4.4.0** — 584 tests across 27 files; typecheck, lint and the eight Chrome Web Store compliance
 gates all pass.
 
 ### Development philosophy
