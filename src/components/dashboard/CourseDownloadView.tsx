@@ -386,6 +386,43 @@ export const CourseDownloadView: React.FC<CourseDownloadViewProps> = ({
             </div>
 
             <div>
+              <h2 className={`${heading} mb-2`}>Layout</h2>
+              {/* Flat first: Claude, ChatGPT and NotebookLM take files, never a
+                  folder, so sub-folders only get in the way of uploading. */}
+              <div className="space-y-1.5 text-sm mb-4">
+                <label className="flex items-start gap-2">
+                  <input
+                    type="radio"
+                    className="mt-1"
+                    disabled={running}
+                    checked={options.layout === 'flat'}
+                    onChange={() => setOptions({ ...options, layout: 'flat' })}
+                  />
+                  <span>
+                    Everything in one folder
+                    <span className="block text-[12px] text-slate-500 dark:text-slate-400">
+                      Each name starts with its lecture number — <code>012 - Lecture - slides.pdf</code>
+                      — so you can select them all and drop them into Claude or ChatGPT.
+                    </span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-2">
+                  <input
+                    type="radio"
+                    className="mt-1"
+                    disabled={running}
+                    checked={options.layout === 'folders'}
+                    onChange={() => setOptions({ ...options, layout: 'folders' })}
+                  />
+                  <span>
+                    One folder per section and lecture
+                    <span className="block text-[12px] text-slate-500 dark:text-slate-400">
+                      Tidier to browse, like the course player.
+                    </span>
+                  </span>
+                </label>
+              </div>
+
               <h2 className={`${heading} mb-2`}>Save as</h2>
               <div className="flex flex-wrap gap-4 text-sm">
                 <label className="inline-flex items-center gap-2">
@@ -395,7 +432,7 @@ export const CourseDownloadView: React.FC<CourseDownloadViewProps> = ({
                     checked={mode === 'folder'}
                     onChange={() => setMode('folder')}
                   />
-                  Folders in Downloads
+                  Files in Downloads
                 </label>
                 <label className="inline-flex items-center gap-2">
                   <input
@@ -408,7 +445,7 @@ export const CourseDownloadView: React.FC<CourseDownloadViewProps> = ({
                 </label>
               </div>
               <p className="mt-1 text-[12px] text-slate-500 dark:text-slate-400">
-                Folders stream each file to disk and suit large courses. A ZIP is assembled in
+                Files stream to disk one by one and suit large courses. A ZIP is assembled in
                 memory first. If Chrome asks where to save every file, turn that off in its
                 download settings, or use the ZIP.
               </p>

@@ -1,4 +1,4 @@
-# Chrome Web Store listing — v4.4.0
+# Chrome Web Store listing — v4.5.0
 
 Copy each block into the matching field in the Developer Dashboard.
 
