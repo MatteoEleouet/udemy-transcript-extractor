@@ -93,6 +93,25 @@ IIFE format inlines every dependency, which keeps sharing code with the popup fr
 `npm run check:store` asserts the content script is still classic, because this is easy to
 reintroduce.
 
+### The Udemy course download
+
+Three files, split by what they may touch:
+
+- `udemy-course.ts` — pure. Parses the curriculum listing into sections and lectures, plans every
+  file and its path (Windows-safe names, under 260 characters), and writes `README.md` and
+  `course.json` from the outcomes.
+- `llm-text.ts` — pure. Turns caption cues into text for reading by a model: the shared cleanup,
+  repetitions and false starts removed, paragraphs with one timestamp each, a context header, and
+  the one-file course.
+- `course-download.ts` — the network, run in the dashboard because the popup dies on blur. API
+  reads go through the content script (`UDEMY_COURSE_CONTEXT`, `UDEMY_API_GET`), since only the
+  page holds the session; caption files are fetched from the CDN once each and cached across
+  formats; resource links are signed and short-lived, so each is asked for just before its
+  download. In folder mode Chrome streams resources to disk itself; ZIP mode reads them into memory.
+
+`downloads` and `https://*.udemycdn.com/*` are optional permissions, requested from the click that
+starts a download.
+
 ### Search
 
 Two indexes over the same passages, fused with reciprocal rank fusion:
@@ -223,7 +242,8 @@ green extractor suite as "the parsing logic is intact", never as "extraction wor
 
 ## Privacy properties
 
-- No network calls at runtime. The search model ships inside the package.
+- No network calls of its own at runtime. The search model ships inside the package. The only
+  requests are the user-started Udemy course download, to Udemy alone, with the page's session.
 - No telemetry, no analytics, no remote configuration, no account.
 - Host permissions are restricted to the three supported platforms; there is no all-URLs
   permission, and `check:store` fails the build if one appears.
@@ -233,6 +253,8 @@ green extractor suite as "the parsing logic is intact", never as "extraction wor
 
 ## Known gaps
 
+- **The course download is validated by tests, not yet across many real courses.** Udemy's course
+  API is undocumented; field names and auth come from what its web app sends.
 - **No library backup or restore.** The library is one profile's IndexedDB; clearing site data loses
   it. Markdown export is not a restore path. The schema in `library-schema.ts` is pure and tested,
   so a JSON dump plus import is bounded work.

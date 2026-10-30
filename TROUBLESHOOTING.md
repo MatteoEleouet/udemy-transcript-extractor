@@ -131,6 +131,19 @@ failing when pressed.
 Everything else — search, the reader, chapters, concepts, definitions, key moments, seek and every
 export — works without it.
 
+## The course download fails or saves nothing
+
+- **"Udemy refused the request (HTTP 401/403)"** — you are signed out, or not enrolled in that
+  course. Reload the Udemy tab while signed in and try again.
+- **"This tab is not a Udemy course page"** — open a lecture of the course (`/course/<name>/learn/…`)
+  and press **Refresh** on the download page.
+- **Chrome asks where to save every file** — turn off *Ask where to save each file before
+  downloading* in Chrome's download settings for the duration, or choose **One ZIP archive**.
+- **A few files failed** — the `README.md` in the course folder says which and why. "Udemy offers no
+  download for this resource" means the instructor did not make it downloadable.
+- **The Udemy tab was closed mid-download** — the API is read through it; reopen it and start again.
+  Files already saved are overwritten, not duplicated.
+
 ## Reporting something else
 
 Open an issue with the platform, the page URL *pattern* (not the lecture itself), and what the panel
