@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented here.
 
+## [4.5.0] — 2026-10-30
+
+### Changed
+
+- **The course download puts every file in one folder by default.** AI
+  assistants — Claude, ChatGPT, NotebookLM — take files but never folders, so
+  a course nested in section and lecture folders had to be dug out folder by
+  folder before it could be uploaded. Files now sit side by side, each name
+  starting with its lecture number (`012 - Lecture - slides.pdf`), which keeps
+  every file attached to its lecture and sorts in course order. The nested
+  layout is one click away for browsing.
+
 ## [4.4.0] — 2026-10-30
 
 ### Added

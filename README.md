@@ -5,11 +5,11 @@ elsewhere — entirely on your own machine.
 
 [![CI](https://github.com/MatteoEleouet/udemy-transcript-extractor/actions/workflows/ci.yml/badge.svg)](https://github.com/MatteoEleouet/udemy-transcript-extractor/actions/workflows/ci.yml)
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-blue?logo=google-chrome)](https://chrome.google.com/webstore)
-[![Version](https://img.shields.io/badge/version-4.4.0-green.svg)](https://github.com/MatteoEleouet/udemy-transcript-extractor)
+[![Version](https://img.shields.io/badge/version-4.5.0-green.svg)](https://github.com/MatteoEleouet/udemy-transcript-extractor)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Fork of [pras-ops/udemy-transcript-extractor](https://github.com/pras-ops/udemy-transcript-extractor).
-What this fork adds (4.4.0):
+What this fork adds (4.4.0 and 4.5.0):
 
 - **Download a whole Udemy course** in one click: every subtitle track and every attached resource
   (PDFs, slides, code, articles, links), filed by section and lecture.
@@ -116,24 +116,29 @@ lecture:
   section and attached resources. Give that file and the PDFs to Claude, ChatGPT or NotebookLM.
 - **Resources**: attached PDFs, slides, source code and documents, lectures that are themselves a
   document, article lectures as HTML, and external links as a `links.md`.
-- **Filed by curriculum**, numbered as in the course player, so each file sits with its lecture:
+- **All in one folder by default**, because AI assistants take files, never folders: select
+  everything and drop it into Claude or ChatGPT. Every name starts with its lecture number, as in
+  the course player, so each file stays attached to its lecture:
 
 ```
 Downloads/Udemy/<Course>/
-  README.md                         every lecture, with links to its files
-  Full course transcript.md         the whole course, cleaned, for reading or an AI assistant
-  course.json                       the same mapping, for scripts
-  01 - Getting started/
-    001 - Welcome/
-      001 - Welcome.en_US.srt       named after the lecture, so a player pairs it
-      001 - Welcome.fr_FR.auto.srt  auto-generated tracks are marked
-      slides.pdf
-      links.md
+  README.md                          every lecture, with links to its files
+  Full course transcript.md          the whole course, cleaned, for reading or an AI assistant
+  course.json                        the same mapping, for scripts
+  001 - Welcome.en_US.txt            named after the lecture
+  001 - Welcome.fr_FR.auto.srt       auto-generated tracks are marked
+  001 - Welcome - slides.pdf         resources keep their name, after the lecture's
+  001 - Welcome - links.md
+  002 - Variables.en_US.txt
+  …
 ```
+
+- Or **one folder per section and lecture** (`01 - Getting started/001 - Welcome/…`), tidier to
+  browse.
 
 - Optionally **imports every transcript into the library** in one go, so the whole course is
   searchable at once. Lectures you already extracted keep their transcript, highlights and notes.
-- Saved as folders (streamed to disk, fine for big courses) or as one ZIP.
+- Saved as files (streamed to disk, fine for big courses) or as one ZIP.
 
 It reads Udemy's course API through your open Udemy tab, with your own session, for courses you are
 enrolled in. Videos are never downloaded. The `downloads` permission is optional and only asked for
@@ -441,7 +446,7 @@ answer is "it will tell you". Node 18+ to build.
 
 ## 📊 Status
 
-**v4.4.0** — 584 tests across 27 files; typecheck, lint and the eight Chrome Web Store compliance
+**v4.5.0** — 589 tests across 27 files; typecheck, lint and the eight Chrome Web Store compliance
 gates all pass.
 
 ### Development philosophy

@@ -15,6 +15,7 @@ vi.mock('./library-db', () => ({ importCourseLectures }));
 
 const { loadCurriculum, runCourseDownload } = await import('./course-download');
 const { DEFAULT_DOWNLOAD_OPTIONS } = await import('./udemy-course');
+const FOLDERS = { ...DEFAULT_DOWNLOAD_OPTIONS, layout: 'folders' as const };
 
 const VTT =
   'WEBVTT\n\n00:00:01.000 --> 00:00:03.000\nHello there, today we we look at\n\n' +
@@ -128,7 +129,7 @@ describe('runCourseDownload', () => {
   it('saves everything it can, reports the rest, and indexes it all', async () => {
     const curriculum = await settle(loadCurriculum(7));
     const report = await settle(
-      runCourseDownload(7, curriculum, DEFAULT_DOWNLOAD_OPTIONS, { mode: 'folder', importLocale: 'en_US' }),
+      runCourseDownload(7, curriculum, FOLDERS, { mode: 'folder', importLocale: 'en_US' }),
     );
 
     const names = downloads.map((d) => d.filename);
@@ -178,7 +179,7 @@ describe('runCourseDownload', () => {
 
     const curriculum = await settle(loadCurriculum(7));
     await settle(
-      runCourseDownload(7, curriculum, { ...DEFAULT_DOWNLOAD_OPTIONS, subtitleFormats: ['txt'] }, { mode: 'folder' }),
+      runCourseDownload(7, curriculum, { ...FOLDERS, subtitleFormats: ['txt'] }, { mode: 'folder' }),
     );
 
     const textOf = (suffix: string) => texts.get(downloads.find((d) => d.filename.endsWith(suffix))!.url)!;
@@ -205,6 +206,16 @@ describe('runCourseDownload', () => {
       String(url).endsWith('.vtt'),
     );
     expect(captionFetches).toHaveLength(2);
+  });
+
+  it('saves everything side by side by default', async () => {
+    const curriculum = await settle(loadCurriculum(7));
+    await settle(runCourseDownload(7, curriculum, DEFAULT_DOWNLOAD_OPTIONS, { mode: 'folder' }));
+    const names = downloads.map((d) => d.filename);
+    expect(names).toContain('Udemy/Python/001 - Welcome.en_US.srt');
+    expect(names).toContain('Udemy/Python/001 - Welcome - slides.pdf');
+    expect(names).toContain('Udemy/Python/Full course transcript.md');
+    expect(names.every((name) => name.split('/').length === 3)).toBe(true);
   });
 
   it('builds one archive in ZIP mode', async () => {

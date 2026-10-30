@@ -13,6 +13,9 @@ import {
   type RawCurriculumItem,
 } from './udemy-course';
 
+// The nested layout, which most expectations below are written against.
+const FOLDERS = { ...DEFAULT_DOWNLOAD_OPTIONS, layout: 'folders' as const };
+
 const COURSE = { courseId: 42, title: 'Python: Zero to Hero', origin: 'https://www.udemy.com', slug: 'python' };
 
 const ITEMS: RawCurriculumItem[] = [
@@ -128,7 +131,7 @@ describe('safe names', () => {
 
 describe('planCourseDownload', () => {
   const curriculum = parseCurriculum(ITEMS, COURSE);
-  const plan = planCourseDownload(curriculum, DEFAULT_DOWNLOAD_OPTIONS);
+  const plan = planCourseDownload(curriculum, FOLDERS);
   const paths = plan.files.map((f) => f.path);
 
   it('puts the course under Udemy/<title>', () => {
@@ -178,7 +181,7 @@ describe('planCourseDownload', () => {
       ],
       { ...COURSE, title: long },
     );
-    const longPlan = planCourseDownload(wordy, DEFAULT_DOWNLOAD_OPTIONS);
+    const longPlan = planCourseDownload(wordy, FOLDERS);
     for (const file of longPlan.files) {
       expect(`${longPlan.root}/${file.path}`.length).toBeLessThanOrEqual(232);
     }
@@ -187,13 +190,13 @@ describe('planCourseDownload', () => {
   it('plans one whole-course file, in the most available chosen language', () => {
     const course = plan.files.filter((f) => f.kind === 'course-text');
     expect(course).toEqual([{ kind: 'course-text', path: 'Full course transcript.md', lectureId: 0, locale: 'en_US' }]);
-    const french = planCourseDownload(curriculum, { ...DEFAULT_DOWNLOAD_OPTIONS, locales: ['fr_FR'] });
+    const french = planCourseDownload(curriculum, { ...FOLDERS, locales: ['fr_FR'] });
     expect(french.files.find((f) => f.kind === 'course-text')).toMatchObject({ locale: 'fr_FR' });
   });
 
   it('respects the chosen locales and formats', () => {
     const only = planCourseDownload(curriculum, {
-      ...DEFAULT_DOWNLOAD_OPTIONS,
+      ...FOLDERS,
       locales: ['fr_FR'],
       subtitleFormats: ['txt'],
       resources: false,
@@ -207,9 +210,39 @@ describe('planCourseDownload', () => {
   });
 });
 
-describe('index and manifest', () => {
+describe('flat layout', () => {
   const curriculum = parseCurriculum(ITEMS, COURSE);
   const plan = planCourseDownload(curriculum, DEFAULT_DOWNLOAD_OPTIONS);
+  const paths = plan.files.map((f) => f.path);
+
+  it('is the default, because an AI upload box takes files, not folders', () => {
+    expect(DEFAULT_DOWNLOAD_OPTIONS.layout).toBe('flat');
+    expect(paths.every((p) => !p.includes('/'))).toBe(true);
+  });
+
+  it('keeps every file attached to its lecture by its name', () => {
+    expect(paths).toContain('001 - Welcome.en_US.srt');
+    expect(paths).toContain('001 - Welcome - slides.pdf');
+    expect(paths).toContain('001 - Welcome - links.md');
+    expect(paths).toContain('002 - Cheat sheet - cheatsheet.pdf');
+    expect(paths).toContain('003 - Read this first.html');
+  });
+
+  it('never collides, even with the files every course folder holds', () => {
+    expect(new Set(paths.map((p) => p.toLowerCase())).size).toBe(paths.length);
+    expect(paths.filter((p) => p === 'README.md' || p === 'course.json')).toEqual([]);
+  });
+
+  it('indexes the flat names', () => {
+    const outcomes = new Map<string, FileOutcome>(paths.map((p) => [p, { status: 'saved' } as FileOutcome]));
+    const index = buildCourseIndex(curriculum, plan, outcomes);
+    expect(index).toContain('[001 - Welcome - slides.pdf](<001 - Welcome - slides.pdf>)');
+  });
+});
+
+describe('index and manifest', () => {
+  const curriculum = parseCurriculum(ITEMS, COURSE);
+  const plan = planCourseDownload(curriculum, FOLDERS);
   const outcomes = new Map<string, FileOutcome>(
     plan.files.map((f) => [f.path, { status: 'saved' } as FileOutcome]),
   );

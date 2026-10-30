@@ -36,11 +36,14 @@ On Udemy there is a faster way: **Download whole course** in the popup.
    WebVTT are only useful for showing subtitles on a video.
 3. Optionally tick **Also add every lecture's transcript to the library** to make the whole course
    searchable without extracting each lecture.
-4. Choose **Folders in Downloads** (recommended for large courses) or **One ZIP archive**, then
+4. Pick the layout. **Everything in one folder** (the default) puts every file side by side, each
+   name starting with its lecture number (`012 - Lecture - slides.pdf`), so you can select them all
+   and upload them to an AI assistant, which takes files but not folders. **One folder per section
+   and lecture** is tidier to browse.
+5. Choose **Files in Downloads** (recommended for large courses) or **One ZIP archive**, then
    **Download course**. Chrome asks once for the downloads permission.
 
-Everything lands in `Downloads/Udemy/<Course>/`, one folder per section and per lecture, numbered as
-in the course player. `README.md` at the top lists every lecture with links to its files and marks
+Everything lands in `Downloads/Udemy/<Course>/`, numbered as in the course player. `README.md` at the top lists every lecture with links to its files and marks
 anything that could not be downloaded, with the reason.
 
 If Chrome is set to *Ask where to save each file*, it will ask for every file in folder mode: turn

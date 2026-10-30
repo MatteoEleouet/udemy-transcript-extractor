@@ -390,6 +390,12 @@ export interface DownloadOptions {
    * model, in the first chosen language.
    */
   courseFile: boolean;
+  /**
+   * `flat`: every file side by side in the course folder, each name starting
+   * with its lecture number — what an AI assistant's upload box accepts, since
+   * none of them take a folder. `folders`: one folder per section and lecture.
+   */
+  layout: 'flat' | 'folders';
 }
 
 export const DEFAULT_DOWNLOAD_OPTIONS: DownloadOptions = {
@@ -399,6 +405,7 @@ export const DEFAULT_DOWNLOAD_OPTIONS: DownloadOptions = {
   links: true,
   articles: true,
   courseFile: true,
+  layout: 'flat',
 };
 
 /** Name of the one-file course, at the top of the course folder. */
@@ -476,20 +483,33 @@ export function planCourseDownload(
     3,
   );
 
+  const flat = options.layout === 'flat';
   const sectionNames = new FolderNames();
   const lectures: PlannedLecture[] = [];
 
+  // Flat, every name shares the one folder, so the files the course folder
+  // always holds are reserved up front.
+  const courseNames = new FolderNames();
+  for (const reserved of ['README.md', 'course.json', COURSE_FILE]) courseNames.take(reserved);
+
+  const at = (folder: string, name: string) => (folder ? `${folder}/${name}` : name);
+
   for (const section of curriculum.sections) {
-    const sectionFolder = sectionNames.take(
-      `${pad(section.index, sectionWidth)} - ${safeSegment(section.title, MAX.section, 'Section')}`,
-    );
+    const sectionFolder = flat
+      ? ''
+      : sectionNames.take(
+          `${pad(section.index, sectionWidth)} - ${safeSegment(section.title, MAX.section, 'Section')}`,
+        );
     const lectureNames = new FolderNames();
 
     for (const lecture of section.lectures) {
       const base = `${pad(lecture.index, lectureWidth)} - ${safeSegment(lecture.title, MAX.lecture, 'Lecture')}`;
-      const folderName = lectureNames.take(base);
-      const folder = `${sectionFolder}/${folderName}`;
-      const names = new FolderNames();
+      const folderName = flat ? base : lectureNames.take(base);
+      const folder = flat ? '' : `${sectionFolder}/${folderName}`;
+      const names = flat ? courseNames : new FolderNames();
+      // A resource keeps its own name, but flat it is prefixed with its
+      // lecture's, which is what keeps `slides.pdf` attached to lecture 12.
+      const own = (name: string) => (flat ? `${folderName} - ${name}` : name);
       const files: PlannedFile[] = [];
 
       for (const caption of lecture.captions) {
@@ -499,7 +519,7 @@ export function planCourseDownload(
           const name = names.take(`${folderName}.${locale}${caption.auto ? '.auto' : ''}.${format}`);
           files.push({
             kind: 'caption',
-            path: `${folder}/${name}`,
+            path: at(folder, name),
             lectureId: lecture.id,
             url: caption.url,
             locale: caption.locale,
@@ -511,7 +531,7 @@ export function planCourseDownload(
       if (options.articles && lecture.assetType === 'Article') {
         files.push({
           kind: 'article',
-          path: `${folder}/${names.take(`${folderName}.html`)}`,
+          path: at(folder, names.take(`${folderName}.html`)),
           lectureId: lecture.id,
           title: lecture.title,
         });
@@ -520,7 +540,7 @@ export function planCourseDownload(
       if (options.resources && lecture.mainFilename && lecture.assetId !== undefined) {
         files.push({
           kind: 'resource',
-          path: `${folder}/${names.take(safeFilename(lecture.mainFilename))}`,
+          path: at(folder, names.take(own(safeFilename(lecture.mainFilename)))),
           lectureId: lecture.id,
           assetId: lecture.assetId,
           main: true,
@@ -533,7 +553,7 @@ export function planCourseDownload(
           if (resource.kind !== 'file') continue;
           files.push({
             kind: 'resource',
-            path: `${folder}/${names.take(safeFilename(resource.filename ?? resource.title))}`,
+            path: at(folder, names.take(own(safeFilename(resource.filename ?? resource.title)))),
             lectureId: lecture.id,
             assetId: resource.assetId,
             main: false,
@@ -546,7 +566,7 @@ export function planCourseDownload(
       if (options.links && links.length > 0) {
         files.push({
           kind: 'links',
-          path: `${folder}/${names.take('links.md')}`,
+          path: at(folder, names.take(own('links.md'))),
           lectureId: lecture.id,
           text: linksMarkdown(lecture, links),
         });
