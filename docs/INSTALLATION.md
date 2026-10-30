@@ -6,7 +6,9 @@ Coming soon.
 
 ## Option 2: Load a release unpacked
 
-1. Download the latest release zip and extract it
+1. Download a release zip from the
+   [Releases page](https://github.com/MatteoEleouet/udemy-transcript-extractor/releases), if one is
+   published, and extract it
 2. Open `chrome://extensions/`
 3. Enable **Developer mode** (top-right toggle)
 4. Click **Load unpacked** and select the extracted folder
@@ -60,8 +62,23 @@ extension.
 - An account on the platform whose lectures you are reading
 - **Node 18+** to build from source
 
-The extension makes no network requests while it runs. You need a connection to
-watch the lecture, not to extract it.
+The extension makes no network requests of its own while it runs. You need a
+connection to watch the lecture, not to extract it. The one exception is the
+Udemy **Download whole course** feature, which you start yourself: it reads
+Udemy's course API through your Udemy tab and downloads files from Udemy's CDN.
+Its `downloads` permission is optional and only asked for on first use.
+
+## Updating
+
+```bash
+git pull
+npm install
+npm run build:extension
+```
+
+Then press the reload icon on the extension's card at `chrome://extensions`. If
+you moved the project folder, remove the extension and load `dist/` again from
+the new place: Chrome keeps the path it was loaded from.
 
 ## If something goes wrong
 
@@ -71,5 +88,7 @@ watch the lecture, not to extract it.
 | Nothing is extracted | The player's own transcript panel is open — the extension reads what the page renders |
 | A shortcut does nothing | `chrome://extensions/shortcuts` for a conflict |
 | Build fails | `npm run fetch:model` has been run, and Node is 18+ |
+| "Could not load background script" | Run the full `npm run build:extension`: building one bundle alone empties `dist/` |
+| No **Download whole course** button | You are on a Udemy course page, and the tab was reloaded after installing |
 
 📖 **Everything else: [TROUBLESHOOTING.md](../TROUBLESHOOTING.md)**

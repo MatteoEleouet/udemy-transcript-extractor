@@ -8,8 +8,13 @@ elsewhere — entirely on your own machine.
 [![Version](https://img.shields.io/badge/version-4.4.0-green.svg)](https://github.com/MatteoEleouet/udemy-transcript-extractor)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Fork of [pras-ops/udemy-transcript-extractor](https://github.com/pras-ops/udemy-transcript-extractor),
-adding whole-course downloads of Udemy subtitles and resources.
+Fork of [pras-ops/udemy-transcript-extractor](https://github.com/pras-ops/udemy-transcript-extractor).
+What this fork adds (4.4.0):
+
+- **Download a whole Udemy course** in one click: every subtitle track and every attached resource
+  (PDFs, slides, code, articles, links), filed by section and lecture.
+- **Text made for AI assistants**: cleaned paragraphs instead of caption lines, and the whole course
+  in one `Full course transcript.md` to give Claude, ChatGPT or NotebookLM.
 
 No account, no server, no telemetry. The extension makes **no network requests of its own** while it
 runs — the one exception being a Udemy course download you start yourself, which talks to Udemy
@@ -42,7 +47,8 @@ prose → mark a passage → jump back to the exact moment → search every cour
   extractor that reads caption data from any standard HTML5 player — Panopto, Kaltura, Echo360,
   Canvas Studio, Moodle, edX and most self-hosted lecture players.
 - **A whole course, not one video.** Lectures accumulate as you work through a course, and the
-  *Next lecture & extract* button walks the curriculum for you.
+  *Next lecture & extract* button walks the curriculum for you. On Udemy, **Download whole course**
+  skips the walk entirely — see [below](#download-a-whole-udemy-course).
 - **Cleanup that matters.** Filler words removed, duplicate and rolling caption lines collapsed,
   out-of-order cues repaired (Udemy's transcript panel is virtualised and hands them over scrambled),
   and technical vocabulary repaired — "Jupiter notebook" → "Jupyter Notebook", "numb pie" → "NumPy".
@@ -203,11 +209,17 @@ graph TB
         EX["extractors:<br/>udemy · coursera · youtube · generic"]
         QN["quick note — Alt+Shift+N"]
         TO["page toast"]
+        API["Udemy API proxy<br/>GET /api-2.0/ only"]
+    end
+
+    subgraph udemy["Udemy (course download only)"]
+        UAPI["course API<br/>curriculum · captions · resources"]
+        CDN["udemycdn.com<br/>subtitle and resource files"]
     end
 
     subgraph ext["Extension"]
         PU["popup<br/>extract · collect · capture · export"]
-        DB["dashboard<br/>library · reader · search · notes · export"]
+        DB["dashboard<br/>library · reader · search · notes · export<br/>course download"]
         SW["service worker<br/>Alt+Shift+S capture only"]
     end
 
@@ -227,10 +239,15 @@ graph TB
     PU --> CST
     QN --> CST
     CST -->|drained on open| DB
+    CS --- API
+    DB <-->|messages| API
+    API -->|your session| UAPI
+    DB -->|files| CDN
 
     style page fill:#fff3e0
     style ext fill:#f3e5f5
     style store fill:#e1f5fe
+    style udemy fill:#e8f5e9
 ```
 
 Two details that are load-bearing rather than incidental:
@@ -240,6 +257,12 @@ Two details that are load-bearing rather than incidental:
 permission it depends on is only granted when the user *invokes* the extension — a keypress on the
 page is not that, but a `chrome.commands` shortcut is. That is the entire reason the worker exists.
 Notes need no such thing, which is why `Alt+Shift+N` is a plain listener on the page.
+
+**The course download reads Udemy through the Udemy tab.** The curriculum, caption tracks and
+resource links come from Udemy's own course API, which needs the student's session. Only the page
+has it, so the dashboard asks the content script, which makes the request on its own origin — GET
+only, `/api-2.0/` only. The extension never holds a Udemy token. The files themselves come from
+Udemy's CDN, read by the dashboard or downloaded by Chrome directly.
 
 **Notes written on the page cannot reach the library directly.** A content script's `indexedDB` is
 the *site's*, not the extension's — writing there would file a note about a lecture into Udemy's
@@ -259,11 +282,16 @@ Coming soon.
 
 ### Load unpacked
 
-1. Download the latest release zip and extract it
+1. Build it (below), or download a release zip from the
+   [Releases page](https://github.com/MatteoEleouet/udemy-transcript-extractor/releases) if one is
+   published, and extract it
 2. Open `chrome://extensions/`
 3. Enable **Developer mode**
-4. **Load unpacked** → select the extracted folder
+4. **Load unpacked** → select the `dist/` folder (or the extracted release)
 5. Pin the extension to your toolbar
+
+After pulling a new version, rebuild and press the reload icon on the extension's card. If you move
+the folder, remove the extension and load it again from the new place: Chrome remembers the path.
 
 ### Build from source
 
@@ -307,6 +335,17 @@ npm run deploy
 2. Click the extension icon → **Extract transcript**
 3. Keep going with **Next lecture & extract** to collect the course
 
+### Download a whole Udemy course
+
+1. Open any lecture of a course you are enrolled in, click the extension icon → **Download whole
+   course**. The dashboard opens on that course; keep the Udemy tab open.
+2. Choose languages, formats and resources, then **Download course**. Chrome asks once for the
+   downloads permission.
+3. Everything lands in `Downloads/Udemy/<Course>/`; start with its `README.md`.
+
+**For an AI assistant**: one language, **Clean text** only, **The whole course in one file** ticked.
+Upload `Full course transcript.md` plus the PDFs.
+
 ### While watching
 
 | Shortcut | Does |
@@ -332,6 +371,8 @@ lecture tab needs to be open, and if it is not, the extension opens it.
 
 **Dedicated extractors** — Udemy, Coursera, YouTube.
 
+**Whole-course download** — Udemy only, including Udemy Business, for courses you are enrolled in.
+
 **Everything else** — a generic extractor reads caption data directly rather than scraping any
 site's markup, using the browser's own `TextTrack` API, `<track>` elements and the caption files the
 player fetches. That covers most lecture-capture and LMS players with **no extra permissions**.
@@ -355,6 +396,11 @@ Worth knowing before you rely on it:
   with black images.
 - **Tier-two AI is often absent.** See above — OCR and prose summaries need Chrome's on-device
   model.
+- **The course download depends on Udemy's API.** It is the same API Udemy's own web app uses, but
+  it is undocumented: a change on Udemy's side can break it, and it has not yet been validated on
+  every kind of course. Videos are never downloaded.
+- **"Ask where to save each file" prompts for every file** in folder mode. Turn that Chrome setting
+  off while downloading, or use the ZIP.
 - **The extractors depend on other people's markup.** A site redesign can break extraction. That is
   the fragile part of this project and always will be.
 
@@ -409,14 +455,17 @@ gates all pass.
 
 ## 🔮 What's next
 
-1. **Backup and restore** — a JSON dump of the library and a way to load it back. The most important
+1. **Validate the course download on more Udemy courses** — articles, document lectures, Udemy
+   Business, very large courses.
+2. **Release zips** on this fork, so the extension installs without building it.
+3. **Backup and restore** — a JSON dump of the library and a way to load it back. The most important
    missing piece.
-2. **Honest extraction failure** — when a site redesign breaks a selector, say *"the site changed,
+4. **Honest extraction failure** — when a site redesign breaks a selector, say *"the site changed,
    update the extension"* rather than returning nothing.
-3. **Real captured fixtures** for the extractor tests — see the caveat in
+5. **Real captured fixtures** for the extractor tests — see the caveat in
    [docs/TECHNICAL.md](docs/TECHNICAL.md).
-4. **Onboarding** — nothing currently tells a new user the dashboard exists.
-5. **More platforms** — LinkedIn Learning, Khan Academy, on request.
+6. **Onboarding** — nothing currently tells a new user the dashboard exists.
+7. **More platforms** — LinkedIn Learning, Khan Academy, on request.
 
 ---
 
@@ -441,7 +490,11 @@ Release history in **[CHANGELOG.md](CHANGELOG.md)**.
 
 ## 📞 Support
 
-Issues and feature requests on GitHub. 📧 jacobprashant20@gmail.com
+Issues and feature requests for this fork:
+[GitHub issues](https://github.com/MatteoEleouet/udemy-transcript-extractor/issues).
+
+The original extension is by [pras-ops](https://github.com/pras-ops/udemy-transcript-extractor);
+problems with the parts this fork did not change can also go upstream.
 
 ---
 
