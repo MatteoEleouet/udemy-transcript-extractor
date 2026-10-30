@@ -103,7 +103,11 @@ All of this is derived from the transcript by selection and statistics, so nothi
 **every subtitle track and every attached resource** of the course — without walking it lecture by
 lecture:
 
-- **All subtitle languages**, or the ones you pick, as SRT, WebVTT and/or a plain transcript.
+- **All subtitle languages**, or the ones you pick, as SRT, WebVTT and/or clean text.
+- **Made for AI assistants**: `Full course transcript.md` holds the whole course in one file, in
+  course order with a contents list. The clean text is merged into paragraphs with one timestamp
+  each, stripped of fillers, stutters ("how to how to") and false starts, and headed with course,
+  section and attached resources. Give that file and the PDFs to Claude, ChatGPT or NotebookLM.
 - **Resources**: attached PDFs, slides, source code and documents, lectures that are themselves a
   document, article lectures as HTML, and external links as a `links.md`.
 - **Filed by curriculum**, numbered as in the course player, so each file sits with its lecture:
@@ -111,6 +115,7 @@ lecture:
 ```
 Downloads/Udemy/<Course>/
   README.md                         every lecture, with links to its files
+  Full course transcript.md         the whole course, cleaned, for reading or an AI assistant
   course.json                       the same mapping, for scripts
   01 - Getting started/
     001 - Welcome/

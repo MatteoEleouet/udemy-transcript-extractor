@@ -184,6 +184,13 @@ describe('planCourseDownload', () => {
     }
   });
 
+  it('plans one whole-course file, in the most available chosen language', () => {
+    const course = plan.files.filter((f) => f.kind === 'course-text');
+    expect(course).toEqual([{ kind: 'course-text', path: 'Full course transcript.md', lectureId: 0, locale: 'en_US' }]);
+    const french = planCourseDownload(curriculum, { ...DEFAULT_DOWNLOAD_OPTIONS, locales: ['fr_FR'] });
+    expect(french.files.find((f) => f.kind === 'course-text')).toMatchObject({ locale: 'fr_FR' });
+  });
+
   it('respects the chosen locales and formats', () => {
     const only = planCourseDownload(curriculum, {
       ...DEFAULT_DOWNLOAD_OPTIONS,
@@ -192,6 +199,7 @@ describe('planCourseDownload', () => {
       resources: false,
       links: false,
       articles: false,
+      courseFile: false,
     });
     expect(only.files.map((f) => f.path)).toEqual([
       '01 - Getting started/001 - Welcome/001 - Welcome.fr_FR.auto.txt',

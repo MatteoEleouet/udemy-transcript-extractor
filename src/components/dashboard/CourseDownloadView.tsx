@@ -14,6 +14,8 @@ import {
   allLectures,
   captionLocales,
   planCourseDownload,
+  primaryLocale,
+  COURSE_FILE,
   DEFAULT_DOWNLOAD_OPTIONS,
   type CourseCurriculum,
   type DownloadOptions,
@@ -29,7 +31,7 @@ interface CourseDownloadViewProps {
 const FORMAT_LABELS: Record<SubtitleFormat, string> = {
   srt: 'SRT',
   vtt: 'WebVTT',
-  txt: 'Text transcript',
+  txt: 'Clean text, for reading or AI',
 };
 
 const card =
@@ -106,6 +108,12 @@ export const CourseDownloadView: React.FC<CourseDownloadViewProps> = ({
     () => (curriculum ? planCourseDownload(curriculum, options) : null),
     [curriculum, options],
   );
+
+  const courseFileLanguage = useMemo(() => {
+    if (!curriculum) return null;
+    const locale = primaryLocale(curriculum, options);
+    return locales.find((entry) => entry.locale === locale)?.label ?? null;
+  }, [curriculum, options, locales]);
 
   const counts = useMemo(() => {
     const files = plan?.files ?? [];
@@ -292,6 +300,25 @@ export const CourseDownloadView: React.FC<CourseDownloadViewProps> = ({
                   </label>
                 ))}
               </div>
+              {/* The format to hand a language model: one ordered file beats
+                  hundreds of small ones. */}
+              <label className="mt-3 flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  disabled={running || locales.length === 0}
+                  checked={options.courseFile}
+                  onChange={(event) => setOptions({ ...options, courseFile: event.target.checked })}
+                />
+                <span>
+                  The whole course in one file, <code>{COURSE_FILE}</code>
+                  {courseFileLanguage ? ` (${courseFileLanguage})` : ''}
+                  <span className="block text-[12px] text-slate-500 dark:text-slate-400">
+                    Every lecture in order, cleaned into paragraphs, with a contents list. The best
+                    thing to give Claude, ChatGPT or NotebookLM.
+                  </span>
+                </span>
+              </label>
             </div>
 
             <div>

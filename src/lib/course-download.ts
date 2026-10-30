@@ -23,7 +23,14 @@
  */
 
 import { ExtensionService } from './extension-service';
-import { parseCaptionFile, toBracketTranscript, toSRT } from './caption-formats';
+import { parseCaptionFile, toBracketTranscript, toCues, toSRT } from './caption-formats';
+import {
+  courseDocument,
+  htmlToText,
+  lectureDocument,
+  type CourseDocumentLecture,
+  type LectureContext,
+} from './llm-text';
 import { createZip, textBytes, type ZipEntry } from './zip';
 import { courseIdFromUrl } from './library-schema';
 import { lectureId } from './collection';
@@ -33,11 +40,14 @@ import {
   articleHtml,
   buildCourseIndex,
   buildCourseManifest,
+  captionLocales,
   lectureUrl,
   parseCurriculum,
   pickDownloadUrl,
   planCourseDownload,
+  type CourseCaption,
   type CourseCurriculum,
+  type CourseLecture,
   type DownloadOptions,
   type DownloadPlan,
   type FileOutcome,
@@ -371,6 +381,9 @@ export async function runCourseDownload(
   const failures: { path: string; reason: string }[] = [];
   const captionCache = new Map<string, Promise<string>>();
   const transcripts = new Map<number, string>();
+  const articleBodies = new Map<number, string>();
+  const localeLabels = new Map(captionLocales(curriculum).map((entry) => [entry.locale, entry.label]));
+  const placed = new Map(plan.lectures.map((entry) => [entry.lecture.id, entry]));
   const progress: DownloadProgress = { done: 0, total: plan.files.length + 2, failed: 0 };
   const signal = run.signal;
 
@@ -396,6 +409,40 @@ export async function runCourseDownload(
       signal,
     );
 
+  /** Where a lecture sits in the course, for the header of its text. */
+  const contextFor = (lecture: CourseLecture, locale?: string): LectureContext => {
+    const entry = placed.get(lecture.id);
+    return {
+      courseTitle: curriculum.title,
+      sectionIndex: entry?.sectionIndex ?? 0,
+      sectionTitle: entry?.sectionTitle ?? '',
+      lectureIndex: lecture.index,
+      lectureTitle: lecture.title,
+      url: lectureUrl(curriculum, lecture.id),
+      durationSeconds: lecture.durationSeconds,
+      language: locale ? localeLabels.get(locale) : undefined,
+      resources: [
+        ...(lecture.mainFilename ? [lecture.mainFilename] : []),
+        ...lecture.resources
+          .filter((resource) => resource.kind === 'file')
+          .map((resource) => resource.filename ?? resource.title),
+      ],
+    };
+  };
+
+  /** A written track in the locale if there is one, an automatic one otherwise. */
+  const trackIn = (lecture: CourseLecture, locale: string): CourseCaption | undefined =>
+    lecture.captions.find((c) => c.locale === locale && !c.auto) ??
+    lecture.captions.find((c) => c.locale === locale);
+
+  const articleBody = async (lectureId: number): Promise<string | undefined> => {
+    if (!articleBodies.has(lectureId)) {
+      const body = (await lectureAsset(lectureId))?.asset?.body;
+      if (body) articleBodies.set(lectureId, body);
+    }
+    return articleBodies.get(lectureId);
+  };
+
   const payloadFor = async (file: PlannedFile): Promise<Payload> => {
     switch (file.kind) {
       case 'links':
@@ -406,14 +453,18 @@ export async function runCourseDownload(
         if (file.format === 'vtt') return { text: source, mime: 'text/vtt' };
         const cues = parseCaptionFile(source);
         if (cues.length === 0) throw new Error('empty subtitle track');
-        return file.format === 'srt'
-          ? { text: toSRT(cues), mime: 'application/x-subrip' }
-          : { text: `${toBracketTranscript(cues)}\n`, mime: 'text/plain' };
+        if (file.format === 'srt') return { text: toSRT(cues), mime: 'application/x-subrip' };
+        // The text format is for reading, by a person or a model: paragraphs,
+        // cleaned, headed with where the lecture sits in the course.
+        const lecture = placed.get(file.lectureId)!.lecture;
+        return { text: lectureDocument(toCues(cues), contextFor(lecture, file.locale)), mime: 'text/plain' };
       }
 
+      case 'course-text':
+        throw new Error('the course file is written after every lecture');
+
       case 'article': {
-        const lecture = await lectureAsset(file.lectureId);
-        const body = lecture?.asset?.body;
+        const body = await articleBody(file.lectureId);
         if (!body) throw new Error('article has no body');
         return { text: articleHtml(file.title, body), mime: 'text/html' };
       }
@@ -433,11 +484,63 @@ export async function runCourseDownload(
     }
   };
 
+  /**
+   * Every lecture in order, in one language. Tracks already fetched for the
+   * per-lecture files come from the cache, so this costs no more requests
+   * than the lectures that were not downloaded in that language.
+   */
+  const buildCourseFile = async (locale: string): Promise<string> => {
+    const lectures = allLectures(curriculum);
+    const entries = new Map<number, CourseDocumentLecture>();
+
+    await eachLimited(
+      lectures,
+      CONCURRENCY,
+      async (lecture) => {
+        const context = contextFor(lecture);
+        const track = trackIn(lecture, locale);
+        if (track) {
+          try {
+            const cues = parseCaptionFile(await captionText(track.url));
+            entries.set(lecture.id, { context, cues: toCues(cues) });
+            return;
+          } catch {
+            entries.set(lecture.id, { context, cues: null, note: 'The subtitles could not be read.' });
+            return;
+          }
+        }
+        if (lecture.assetType === 'Article') {
+          const body = await articleBody(lecture.id).catch(() => undefined);
+          entries.set(lecture.id, { context, cues: null, text: body ? htmlToText(body) : undefined });
+          return;
+        }
+        entries.set(lecture.id, {
+          context,
+          cues: null,
+          note:
+            lecture.mainFilename !== undefined
+              ? `A document lecture: ${lecture.mainFilename}.`
+              : 'No subtitles in this language.',
+        });
+      },
+      signal,
+    );
+
+    return courseDocument(
+      curriculum.title,
+      lectures.flatMap((lecture) => {
+        const entry = entries.get(lecture.id);
+        return entry ? [entry] : [];
+      }),
+      `${curriculum.origin}/course/${curriculum.slug}/`,
+    );
+  };
+
   report();
 
   try {
     await eachLimited(
-      plan.files,
+      plan.files.filter((file) => file.kind !== 'course-text'),
       CONCURRENCY,
       async (file) => {
         progress.current = file.path;
@@ -467,9 +570,7 @@ export async function runCourseDownload(
         allLectures(curriculum),
         CONCURRENCY,
         async (lecture) => {
-          const track =
-            lecture.captions.find((c) => c.locale === run.importLocale && !c.auto) ??
-            lecture.captions.find((c) => c.locale === run.importLocale);
+          const track = trackIn(lecture, run.importLocale!);
           if (!track) return;
           try {
             const cues = parseCaptionFile(await captionText(track.url));
@@ -482,6 +583,27 @@ export async function runCourseDownload(
       );
     }
     progress.done += 1;
+
+    const courseFile = plan.files.find((file) => file.kind === 'course-text');
+    if (courseFile?.kind === 'course-text' && !signal?.aborted) {
+      progress.current = courseFile.path;
+      report();
+      try {
+        await sink.write(courseFile.path, {
+          text: await buildCourseFile(courseFile.locale),
+          mime: 'text/markdown',
+        });
+        outcomes.set(courseFile.path, { status: 'saved' });
+      } catch (error) {
+        if (!signal?.aborted) {
+          const reason = reasonOf(error);
+          outcomes.set(courseFile.path, { status: 'failed', reason });
+          failures.push({ path: courseFile.path, reason });
+          progress.failed += 1;
+        }
+      }
+      progress.done += 1;
+    }
 
     if (signal?.aborted) {
       return { root: plan.root, saved: countSaved(outcomes), failures, cancelled: true };
